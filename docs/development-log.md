@@ -56,6 +56,67 @@ Added automated tests for the above cases.
 
 ## Stage 5 — Knight Move Generation
 
+---
+
+## Stage 7 — King Move Generation
+
+Implemented basic pseudo-legal movement for the king.
+
+### King Movement
+
+The king can move one square in any of the eight directions:
+
+- Up
+- Down
+- Left
+- Right
+- Four diagonals
+
+The current implementation:
+
+- Allows movement to empty squares.
+- Allows captures of opponent pieces.
+- Prevents capturing own pieces.
+- Prevents movement outside the board.
+
+### Scope
+
+King safety is intentionally not handled at this stage.
+
+The current move generator does not yet prevent a king from moving into
+an attacked square. Check detection and legal move filtering will be
+implemented in the game-state/rules phase.
+
+### Testing
+
+Added tests covering:
+
+- All eight king directions
+- Enemy captures
+- Own-piece blocking
+- Board boundaries
+- Black king movement
+- Invalid king positions
+
+Current test status:
+
+**37 tests passing.**
+
+### Phase 1 Completion
+
+With king movement implemented, basic movement generation exists for all
+six chess piece types:
+
+- Pawn
+- Knight
+- Bishop
+- Rook
+- Queen
+- King
+
+Phase 1 — Chess Core Foundation is complete.
+
+
 Implemented pseudo-legal knight movement:
 
 - L-shaped movement
@@ -132,3 +193,63 @@ Added automated tests covering:
 Current test status:
 
 **31 tests passing.**
+
+---
+
+## Stage 7 — King Move Generation
+
+Implemented basic pseudo-legal movement for the king.
+
+### King Movement
+
+The king can move one square in any of the eight directions:
+
+- Up
+- Down
+- Left
+- Right
+- Four diagonals
+
+The current implementation:
+
+- Allows movement to empty squares.
+- Allows captures of opponent pieces.
+- Prevents capturing own pieces.
+- Prevents movement outside the board.
+
+### Scope
+
+King safety is intentionally not handled at this stage.
+
+The current move generator does not yet prevent a king from moving into
+an attacked square. Check detection and legal move filtering will be
+implemented in the game-state/rules phase.
+
+### Testing
+
+Added tests covering:
+
+- All eight king directions
+- Enemy captures
+- Own-piece blocking
+- Board boundaries
+- Black king movement
+- Invalid king positions
+
+Current test status:
+
+**37 tests passing.**
+
+### Phase 1 Completion
+
+With king movement implemented, basic movement generation exists for all
+six chess piece types:
+
+- Pawn
+- Knight
+- Bishop
+- Rook
+- Queen
+- King
+
+Phase 1 — Chess Core Foundation is complete.

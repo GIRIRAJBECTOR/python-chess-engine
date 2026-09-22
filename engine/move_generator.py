@@ -331,3 +331,45 @@ class MoveGenerator:
             square,
             directions
         )
+    @staticmethod
+    def generate_king_moves(board, square):
+        row, column = square_to_position(square)
+        king = board.get_piece(row, column)
+
+        if king not in ("K", "k"):
+            raise ValueError(f"{square} does not contain a king")
+
+        moves = []
+
+        directions = [
+            (-1, -1),
+            (-1, 0),
+            (-1, 1),
+            (0, -1),
+            (0, 1),
+            (1, -1),
+            (1, 0),
+            (1, 1),
+        ]
+
+        for row_offset, column_offset in directions:
+            target_row = row + row_offset
+            target_column = column + column_offset
+
+            if not (0 <= target_row < 8):
+                continue
+
+            if not (0 <= target_column < 8):
+                continue
+
+            target = board.get_piece(target_row, target_column)
+
+            if target == "." or MoveGenerator.is_opponent(target, king):
+                moves.append(
+                    Move(
+                        square,
+                        position_to_square(target_row, target_column)
+                    )
+                )
+
+        return moves
