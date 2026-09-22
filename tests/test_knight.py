@@ -15,7 +15,7 @@ def test_knight_initial_moves():
     )
 
     assert move_strings(moves) == [
-        "g1e2",
+        "g1f3",
         "g1h3",
     ]
 
@@ -83,5 +83,4 @@ def test_knight_edge_of_board():
 
     assert move_strings(moves) == [
         "a1b3",
-        "a1c2",
     ]

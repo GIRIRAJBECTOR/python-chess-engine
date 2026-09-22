@@ -224,3 +224,110 @@ class MoveGenerator:
                 )
 
         return moves
+
+    @staticmethod
+    def _generate_sliding_moves(board, square, directions):
+        row, column = square_to_position(square)
+        piece = board.get_piece(row, column)
+
+        if piece == ".":
+            raise ValueError(f"{square} does not contain a piece")
+
+        moves = []
+
+        for row_direction, column_direction in directions:
+            target_row = row + row_direction
+            target_column = column + column_direction
+
+            while 0 <= target_row < 8 and 0 <= target_column < 8:
+                target = board.get_piece(target_row, target_column)
+
+                if target == ".":
+                    moves.append(
+                        Move(
+                            square,
+                            position_to_square(target_row, target_column)
+                        )
+                    )
+                else:
+                    if MoveGenerator.is_opponent(target, piece):
+                        moves.append(
+                            Move(
+                                square,
+                                position_to_square(target_row, target_column)
+                            )
+                        )
+
+                    break
+
+                target_row += row_direction
+                target_column += column_direction
+
+        return moves
+
+    @staticmethod
+    def generate_bishop_moves(board, square):
+        row, column = square_to_position(square)
+        bishop = board.get_piece(row, column)
+
+        if bishop not in ("B", "b"):
+            raise ValueError(f"{square} does not contain a bishop")
+
+        directions = [
+            (-1, -1),
+            (-1, 1),
+            (1, -1),
+            (1, 1),
+        ]
+
+        return MoveGenerator._generate_sliding_moves(
+            board,
+            square,
+            directions
+        )
+
+    @staticmethod
+    def generate_rook_moves(board, square):
+        row, column = square_to_position(square)
+        rook = board.get_piece(row, column)
+
+        if rook not in ("R", "r"):
+            raise ValueError(f"{square} does not contain a rook")
+
+        directions = [
+            (-1, 0),
+            (1, 0),
+            (0, -1),
+            (0, 1),
+        ]
+
+        return MoveGenerator._generate_sliding_moves(
+            board,
+            square,
+            directions
+        )
+
+    @staticmethod
+    def generate_queen_moves(board, square):
+        row, column = square_to_position(square)
+        queen = board.get_piece(row, column)
+
+        if queen not in ("Q", "q"):
+            raise ValueError(f"{square} does not contain a queen")
+
+        directions = [
+            (-1, -1),
+            (-1, 1),
+            (1, -1),
+            (1, 1),
+            (-1, 0),
+            (1, 0),
+            (0, -1),
+            (0, 1),
+        ]
+
+        return MoveGenerator._generate_sliding_moves(
+            board,
+            square,
+            directions
+        )

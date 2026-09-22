@@ -69,3 +69,66 @@ Added automated tests.
 ### Current Test Status
 
 22 tests passing.
+
+---
+
+## Stage 6 — Sliding Piece Move Generation
+
+Implemented pseudo-legal movement for sliding chess pieces.
+
+### Sliding Move Algorithm
+
+Added a reusable sliding-piece movement algorithm that follows a piece
+along one or more directions until it reaches the edge of the board or
+an occupied square.
+
+The algorithm:
+
+- Adds empty squares as valid destinations.
+- Allows captures of opponent pieces.
+- Stops when an occupied square is reached.
+- Does not allow capturing own pieces.
+- Prevents movement beyond blocking pieces.
+
+### Bishop
+
+Implemented diagonal movement in four directions:
+
+- Up-left
+- Up-right
+- Down-left
+- Down-right
+
+### Rook
+
+Implemented horizontal and vertical movement:
+
+- Up
+- Down
+- Left
+- Right
+
+### Queen
+
+Implemented queen movement by combining:
+
+- Bishop diagonal directions
+- Rook horizontal and vertical directions
+
+### Testing
+
+Added automated tests covering:
+
+- Bishop movement on an empty board
+- Bishop blocking
+- Bishop captures
+- Bishop own-piece blocking
+- Rook movement
+- Rook blocking
+- Rook captures
+- Queen movement
+- Invalid sliding-piece positions
+
+Current test status:
+
+**31 tests passing.**
