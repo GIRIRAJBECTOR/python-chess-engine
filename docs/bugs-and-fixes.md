@@ -65,3 +65,26 @@ Updated the test expectations to match the actual chess movement rules.
 Test expectations must account for board occupancy and piece ownership,
 not only the geometric movement pattern of a piece.
 
+
+## Phase 2 Fixes
+
+### Circular import in attack detection
+attack_detector.py accidentally imported GameState, while game_state.py already imported AttackDetector. This caused a circular import during test collection.
+
+**Fix:** Removed the unnecessary GameState import from attack_detector.py.
+
+### Standard Perft position mismatch
+The initial Kiwipete Perft test used an incorrect FEN position, resulting in 45 moves instead of the expected 48.
+
+**Fix:** Replaced the test position with the correct standard Kiwipete FEN.
+
+### King capture handling
+Move execution initially allowed an opponent king to be treated as a capturable piece.
+
+**Fix:** make_move() now rejects attempts to capture a king. Checkmate remains the terminal condition instead.
+
+### FEN support
+Added FEN parsing to allow validation against standard chess positions and make the engine easier to test with arbitrary positions.
+
+### Test validation
+After the fixes, the complete test suite passed with 140 tests.

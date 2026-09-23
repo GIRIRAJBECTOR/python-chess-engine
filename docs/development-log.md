@@ -253,3 +253,33 @@ six chess piece types:
 - King
 
 Phase 1 — Chess Core Foundation is complete.
+
+## Phase 2 ? Game State and Legal Chess Rules
+
+Completed the core game-state layer and legal chess rule handling.
+
+### Implemented
+- Game state and side-to-move tracking
+- Move execution and undo functionality
+- Captures
+- Check detection
+- Legal move generation
+- Checkmate detection
+- Stalemate detection
+- Castling with castling-right tracking
+- En passant
+- Pawn promotion to Queen, Rook, Bishop, and Knight
+- FEN position loading
+- Halfmove and fullmove counters
+- State snapshots for reliable undo/perft traversal
+- Protection against capturing the king
+
+### Validation
+- Initial position Perft depth 1: 20
+- Initial position Perft depth 2: 400
+- Initial position Perft depth 3: 8,902
+- Initial position Perft depth 4: 197,281
+- Standard/special-position Perft validation
+- 140 automated tests passing
+
+Phase 2 is complete and ready for the GUI layer.
