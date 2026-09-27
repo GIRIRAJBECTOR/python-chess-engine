@@ -1,31 +1,9 @@
-from engine.board import Board
-from engine.move_generator import MoveGenerator
+from gui.game_window import GameWindow
 
 
 def main():
-    board = Board()
-
-    board.display()
-
-    print("\nWhite pawn moves from e2:")
-
-    moves = MoveGenerator.generate_pawn_moves(
-        board,
-        "e2"
-    )
-
-    for move in moves:
-        print(move)
-
-    print("\nWhite knight moves from g1:")
-
-    moves = MoveGenerator.generate_knight_moves(
-        board,
-        "g1"
-    )
-
-    for move in moves:
-        print(move)
+    game_window = GameWindow()
+    game_window.run()
 
 
 if __name__ == "__main__":
