@@ -2,18 +2,18 @@ import pygame
 import copy
 from engine.game_state import GameState
 from gui.board_renderer import BoardRenderer
+from engine.ai import ChessAI
 
 
 class GameWindow:
 
     WIDTH = 640
-    HEIGHT = 800
+    HEIGHT = 760
     BOARD_HEIGHT = 640
     FPS = 60
 
     STATUS_HEIGHT = 40
     HISTORY_HEIGHT = 40
-    CAPTURE_HEIGHT = 40
 
     def __init__(self):
 
@@ -30,6 +30,11 @@ class GameWindow:
         self.clock = pygame.time.Clock()
 
         self.running = True
+
+        # AI opponent: human plays White, engine plays Black.
+        self.ai_side = GameState.BLACK
+        self.ai = ChessAI(depth=2)
+        self.ai_thinking = False
 
         # -------------------------------------------------
         # Game state
@@ -55,11 +60,7 @@ class GameWindow:
 
         self.move_history = []
         self.game_history = []
-        self.capture_history = []
-        self.captured_white = []
-        self.captured_black = []
-        self.last_move = None
-        self.last_move_history = []
+        self.ai_thinking = False
 
         # -------------------------------------------------
         # Fonts
@@ -277,11 +278,6 @@ class GameWindow:
 
         self.move_history = []
         self.game_history = []
-        self.capture_history = []
-        self.captured_white = []
-        self.captured_black = []
-        self.last_move = None
-        self.last_move_history = []
 
     # =====================================================
     # UNDO
@@ -297,14 +293,6 @@ class GameWindow:
 
         if self.move_history:
             self.move_history.pop()
-
-        if self.capture_history:
-            self.captured_white, self.captured_black = self.capture_history.pop()
-
-        if self.last_move_history:
-            self.last_move = self.last_move_history.pop()
-        else:
-            self.last_move = None
 
         self.clear_selection()
 
@@ -383,33 +371,12 @@ class GameWindow:
                 break
 
         if target_move is not None:
-            # Save complete state before the move.
+            # One undo checkpoint represents the human move + AI reply.
             self.game_history.append(copy.deepcopy(self.game_state))
-            self.capture_history.append(
-                (self.captured_white.copy(), self.captured_black.copy())
-            )
-            self.last_move_history.append(self.last_move)
 
-            from_square = str(target_move)[:2]
-            to_square = str(target_move)[2:4]
-
-            # Track a captured piece for the GUI.
-            captured_piece = self.get_piece_at(to_square)
-            if captured_piece not in (None, "."):
-                if captured_piece.isupper():
-                    self.captured_white.append(captured_piece)
-                else:
-                    self.captured_black.append(captured_piece)
-
-            # Build SAN-like notation from the pre-move position.
             notation = self.get_move_notation(target_move)
-
             self.game_state.make_move(target_move)
 
-            # Remember the last move for board highlighting.
-            self.last_move = (from_square, to_square)
-
-            # Add check/checkmate suffix based on the resulting position.
             next_side = self.game_state.side_to_move
             if self.game_state.is_checkmate(next_side):
                 notation += "#"
@@ -418,6 +385,14 @@ class GameWindow:
 
             self.add_move_to_history(target_move, notation)
             self.clear_selection()
+
+            # Engine replies immediately after the human's move.
+            if (
+                self.game_state.side_to_move == self.ai_side
+                and not self.game_state.is_game_over()
+            ):
+                self.make_ai_move()
+
             return
 
         # =================================================
@@ -439,6 +414,36 @@ class GameWindow:
         # =================================================
 
         self.clear_selection()
+
+    # =====================================================
+    # AI MOVE
+    # =====================================================
+
+    def make_ai_move(self):
+        if self.game_state.side_to_move != self.ai_side:
+            return
+        if self.game_state.is_game_over():
+            return
+
+        self.ai_thinking = True
+        try:
+            move = self.ai.choose_move(self.game_state)
+            if move is None:
+                return
+
+            notation = self.get_move_notation(move)
+            self.game_state.make_move(move)
+
+            next_side = self.game_state.side_to_move
+            if self.game_state.is_checkmate(next_side):
+                notation += "#"
+            elif self.game_state.is_in_check(next_side):
+                notation += "+"
+
+            self.add_move_to_history(move, notation)
+            self.clear_selection()
+        finally:
+            self.ai_thinking = False
 
     # =====================================================
     # STATUS
@@ -491,6 +496,12 @@ class GameWindow:
             return "Black to move - CHECK"
 
         # -------------------------------------------------
+        # AI turn
+        # -------------------------------------------------
+        if self.ai_thinking:
+            return "Black (AI) is thinking..."
+
+        # -------------------------------------------------
         # Normal turn
         # -------------------------------------------------
 
@@ -537,72 +548,6 @@ class GameWindow:
         self.screen.blit(
             text,
             text_rect,
-        )
-
-    # =====================================================
-    # CAPTURED PIECES
-    # =====================================================
-
-    def draw_captured_pieces(self):
-
-        # Compact text representation keeps the GUI stable
-        # regardless of the font/piece-image implementation.
-        symbols = {
-            "P": "♙", "N": "♘", "B": "♗",
-            "R": "♖", "Q": "♕", "K": "♔",
-            "p": "♟", "n": "♞", "b": "♝",
-            "r": "♜", "q": "♛", "k": "♚",
-        }
-
-        white_text = "".join(
-            symbols.get(piece, piece)
-            for piece in self.captured_white
-        )
-
-        black_text = "".join(
-            symbols.get(piece, piece)
-            for piece in self.captured_black
-        )
-
-        y = self.BOARD_HEIGHT + self.STATUS_HEIGHT + self.HISTORY_HEIGHT
-
-        pygame.draw.rect(
-            self.screen,
-            (25, 25, 25),
-            (0, y, self.WIDTH, self.HISTORY_HEIGHT),
-        )
-
-        label = self.history_font.render(
-            "Captured:",
-            True,
-            (210, 210, 210),
-        )
-
-        self.screen.blit(
-            label,
-            (250, y + 8),
-        )
-
-        white_surface = self.history_font.render(
-            white_text or "-",
-            True,
-            (245, 245, 245),
-        )
-
-        black_surface = self.history_font.render(
-            black_text or "-",
-            True,
-            (245, 245, 245),
-        )
-
-        self.screen.blit(
-            white_surface,
-            (365, y + 8),
-        )
-
-        self.screen.blit(
-            black_surface,
-            (500, y + 8),
         )
 
     # =====================================================
@@ -757,59 +702,6 @@ class GameWindow:
                     )
 
     # =====================================================
-    # MOVE HIGHLIGHTING
-    # =====================================================
-
-    def square_to_pixel(self, square):
-        column = ord(square[0]) - ord("a")
-        row = 8 - int(square[1])
-        size = self.BOARD_HEIGHT // 8
-        return column * size, row * size
-
-    def draw_move_highlights(self):
-        size = self.BOARD_HEIGHT // 8
-
-        # Last move: highlight both origin and destination.
-        if self.last_move:
-            overlay = pygame.Surface((size, size), pygame.SRCALPHA)
-
-            for square in self.last_move:
-                overlay.fill((245, 210, 70, 75))
-                x, y = self.square_to_pixel(square)
-                self.screen.blit(overlay, (x, y))
-
-        # Selected piece: stronger highlight.
-        if self.selected_square:
-            overlay = pygame.Surface((size, size), pygame.SRCALPHA)
-            overlay.fill((70, 150, 255, 75))
-            x, y = self.square_to_pixel(self.selected_square)
-            self.screen.blit(overlay, (x, y))
-
-        # Legal destinations: dot for empty squares, ring for captures.
-        for move in self.legal_moves:
-            target = str(move)[2:4]
-            x, y = self.square_to_pixel(target)
-            center = (x + size // 2, y + size // 2)
-
-            piece = self.get_piece_at(target)
-
-            if piece in (None, "."):
-                pygame.draw.circle(
-                    self.screen,
-                    (35, 110, 70, 150),
-                    center,
-                    max(7, size // 9),
-                )
-            else:
-                pygame.draw.circle(
-                    self.screen,
-                    (220, 80, 70, 190),
-                    center,
-                    size // 2 - 7,
-                    5,
-                )
-
-    # =====================================================
     # CHECK INDICATOR
     # =====================================================
 
@@ -909,7 +801,6 @@ class GameWindow:
 
         self.board_renderer.draw()
 
-        self.draw_move_highlights()
         self.draw_check_indicator()
 
         self.draw_game_over_overlay()
@@ -917,8 +808,6 @@ class GameWindow:
         self.draw_status()
 
         self.draw_move_history()
-
-        self.draw_captured_pieces()
 
         pygame.display.flip()
 
