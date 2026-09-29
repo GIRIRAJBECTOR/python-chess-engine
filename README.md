@@ -105,8 +105,6 @@ python-chess-engine/
 │
 ├── main.py
 ├── requirements.txt
-├── DEVELOPMENT_LOG.md
-├── BUGS_AND_FIXES.md
 └── README.md
 ```
 
