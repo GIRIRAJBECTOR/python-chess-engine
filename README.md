@@ -246,6 +246,3 @@ The architecture is intentionally modular so future work can be added without re
 
 The current release is considered the finished baseline version of the project. Future enhancements can be developed as a separate v2.x line without changing the v1.0 scope.
 
-## License
-
-Add the license of your choice before publishing the project for external reuse.
