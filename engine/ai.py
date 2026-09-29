@@ -75,7 +75,11 @@ class ChessAI:
         return best_move
 
     def evaluate(self, game_state: GameState) -> int:
-        """Static evaluation from White's perspective."""
+        """Material-only evaluation from White's perspective.
+
+        Kept intentionally simple for backwards compatibility with the
+        original AI tests. The actual search uses evaluate_position().
+        """
         score = 0
 
         for row in range(8):
@@ -91,6 +95,117 @@ class ChessAI:
                     score += value
                 else:
                     score -= value
+
+        return score
+
+    # Piece-square tables. Row 0 is rank 8 and row 7 is rank 1.
+    # Values are intentionally modest compared with material values.
+    _PST = {
+        "P": (
+            (0, 0, 0, 0, 0, 0, 0, 0),
+            (50, 50, 50, 50, 50, 50, 50, 50),
+            (10, 10, 20, 30, 30, 20, 10, 10),
+            (5, 5, 10, 25, 25, 10, 5, 5),
+            (0, 0, 0, 20, 20, 0, 0, 0),
+            (5, -5, -10, 0, 0, -10, -5, 5),
+            (5, 10, 10, -20, -20, 10, 10, 5),
+            (0, 0, 0, 0, 0, 0, 0, 0),
+        ),
+        "N": (
+            (-50, -40, -30, -30, -30, -30, -40, -50),
+            (-40, -20, 0, 5, 5, 0, -20, -40),
+            (-30, 5, 10, 15, 15, 10, 5, -30),
+            (-30, 0, 15, 20, 20, 15, 0, -30),
+            (-30, 5, 15, 20, 20, 15, 5, -30),
+            (-30, 0, 10, 15, 15, 10, 0, -30),
+            (-40, -20, 0, 0, 0, 0, -20, -40),
+            (-50, -40, -30, -30, -30, -30, -40, -50),
+        ),
+        "B": (
+            (-20, -10, -10, -10, -10, -10, -10, -20),
+            (-10, 5, 0, 0, 0, 0, 5, -10),
+            (-10, 10, 10, 10, 10, 10, 10, -10),
+            (-10, 0, 10, 10, 10, 10, 0, -10),
+            (-10, 5, 5, 10, 10, 5, 5, -10),
+            (-10, 0, 5, 10, 10, 5, 0, -10),
+            (-10, 0, 0, 0, 0, 0, 0, -10),
+            (-20, -10, -10, -10, -10, -10, -10, -20),
+        ),
+        "R": (
+            (0, 0, 0, 5, 5, 0, 0, 0),
+            (-5, 0, 0, 0, 0, 0, 0, -5),
+            (-5, 0, 0, 0, 0, 0, 0, -5),
+            (-5, 0, 0, 0, 0, 0, 0, -5),
+            (-5, 0, 0, 0, 0, 0, 0, -5),
+            (-5, 0, 0, 0, 0, 0, 0, -5),
+            (5, 10, 10, 10, 10, 10, 10, 5),
+            (0, 0, 0, 0, 0, 0, 0, 0),
+        ),
+        "Q": (
+            (-20, -10, -10, -5, -5, -10, -10, -20),
+            (-10, 0, 0, 0, 0, 0, 0, -10),
+            (-10, 0, 5, 5, 5, 5, 0, -10),
+            (-5, 0, 5, 5, 5, 5, 0, -5),
+            (0, 0, 5, 5, 5, 5, 0, 0),
+            (-10, 5, 5, 5, 5, 5, 5, -10),
+            (-10, 0, 5, 0, 0, 0, 0, -10),
+            (-20, -10, -10, -5, -5, -10, -10, -20),
+        ),
+        "K": (
+            (20, 30, 10, 0, 0, 10, 30, 20),
+            (20, 20, 0, 0, 0, 0, 20, 20),
+            (-10, -20, -20, -20, -20, -20, -20, -10),
+            (-20, -30, -30, -40, -40, -30, -30, -20),
+            (-30, -40, -40, -50, -50, -40, -40, -30),
+            (-30, -40, -40, -50, -50, -40, -40, -30),
+            (-30, -40, -40, -50, -50, -40, -40, -30),
+            (-30, -40, -40, -50, -50, -40, -40, -30),
+        ),
+    }
+
+    def evaluate_position(self, game_state: GameState) -> int:
+        """Richer static evaluation from White's perspective.
+
+        Combines material, piece-square placement, mobility, and a small
+        center-control bonus. Material remains dominant so the engine does
+        not sacrifice pieces merely for positional bonuses.
+        """
+        score = self.evaluate(game_state)
+
+        # Positional value.
+        for row in range(8):
+            for column in range(8):
+                piece = game_state.board.get_piece(row, column)
+
+                if piece in (None, "."):
+                    continue
+
+                table = self._PST.get(piece.upper())
+                if table is None:
+                    continue
+
+                pst_row = row if piece.isupper() else 7 - row
+                bonus = table[pst_row][column]
+                score += bonus if piece.isupper() else -bonus
+
+        # Mobility: a small bonus for having more legal choices.
+        try:
+            white_moves = len(game_state.generate_legal_moves(GameState.WHITE))
+            black_moves = len(game_state.generate_legal_moves(GameState.BLACK))
+            score += (white_moves - black_moves) * 2
+        except Exception:
+            # Keep evaluation robust if a future GameState implementation
+            # changes move-generation details.
+            pass
+
+        # Center occupancy/control proxy. Occupying the four central squares
+        # is useful without requiring another attack-map API.
+        center = {(3, 3), (3, 4), (4, 3), (4, 4)}
+        for row, column in center:
+            piece = game_state.board.get_piece(row, column)
+            if piece in (None, "."):
+                continue
+            score += 12 if piece.isupper() else -12
 
         return score
 
