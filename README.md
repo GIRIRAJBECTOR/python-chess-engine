@@ -1,36 +1,47 @@
 # Python Chess Engine
 
-A custom chess engine built in Python with a playable Pygame interface, legal move generation, game-state handling, and a lightweight chess AI.
+A custom chess engine built in Python with a playable Pygame interface, legal move generation, game-state handling, automated testing, and a lightweight chess AI.
+
+The current release is **v1.0**.
 
 ## Overview
 
 This project was built from the ground up to explore chess-engine architecture, move generation, game-state management, search algorithms, automated testing, and GUI integration.
 
-The current release is treated as **v1.0**.
-
 ## Features
 
 ### Chess Engine
-- Board and game-state representation
+
+- 8x8 board representation
+- Coordinate conversion between chess notation and internal coordinates
 - Legal move generation
 - Piece movement and captures
-- Check and checkmate detection
+- Check detection
+- Checkmate detection
 - Stalemate detection
-- Pawn promotion
-- FEN-based position loading
+- Castling with castling-right tracking
+- En passant
+- Pawn promotion to Queen, Rook, Bishop, and Knight
+- FEN position loading
+- Halfmove and fullmove counters
 - Move history and undo support
+- State snapshots for reliable undo/perft traversal
+- Protection against capturing the king
+- Perft validation against standard positions
 
 ### AI
-- Minimax-style recursive search
+
+- Depth-limited recursive search
 - Alpha-beta pruning
 - Capture-first move ordering
-- Material-based evaluation
-- Positional evaluation using piece-square tables
+- Material evaluation
+- Piece-square positional evaluation
 - Mobility and center-control bonuses
 - Configurable search depth
 - Deterministic move selection
 
 ### GUI
+
 - Pygame-based chess board
 - Click-to-select pieces
 - Legal-move highlighting
@@ -47,12 +58,14 @@ The current release is treated as **v1.0**.
 When the application starts, you can choose:
 
 ### Computer vs Human
+
 - Human plays White
 - Computer plays Black
-- The engine waits 5 seconds after the human move before calculating/playing its response
+- The engine waits 5 seconds after the human move before playing its response
 
 ### Human vs Human
-- Both sides are controlled by the players
+
+- Both sides are controlled by players
 - AI is disabled
 
 ## Project Structure
@@ -60,6 +73,10 @@ When the application starts, you can choose:
 ```text
 python-chess-engine/
 │
+├── docs/
+│   ├── development-log.md
+│   ├── bugs-and-fixes.md
+│   
 ├── engine/
 │   ├── __init__.py
 │   ├── board.py
@@ -88,6 +105,8 @@ python-chess-engine/
 │
 ├── main.py
 ├── requirements.txt
+├── DEVELOPMENT_LOG.md
+├── BUGS_AND_FIXES.md
 └── README.md
 ```
 
@@ -142,13 +161,11 @@ The application opens with the game-mode selection screen.
 
 ## Run Tests
 
-Run the complete test suite with:
-
 ```powershell
 python -m pytest
 ```
 
-At the v1.0 final checkpoint, the project test suite reported:
+At the final v1.0 checkpoint:
 
 ```text
 144 passed
@@ -157,8 +174,6 @@ At the v1.0 final checkpoint, the project test suite reported:
 The test suite covers core engine behavior, move generation, board/game-state logic, piece movement, sliding pieces, perft, and AI behavior.
 
 ## AI Architecture
-
-The AI uses a depth-limited recursive search.
 
 ```text
 Current Position
@@ -181,20 +196,20 @@ Alpha-Beta Search
 Best Move
 ```
 
-The evaluation combines:
+The position evaluation uses:
 
 - Material values
 - Piece-square tables
 - Mobility
 - Center occupancy
 
-Material remains the dominant component so that positional bonuses do not outweigh major material differences.
+Material remains the dominant component so positional bonuses do not outweigh major material differences.
 
 ## Testing Philosophy
 
-The project uses `pytest` to validate the engine while new functionality is added.
+The project uses `pytest` to validate the engine as functionality is added.
 
-Tests are organized by responsibility:
+Tests cover:
 
 - Board representation
 - Coordinates
@@ -205,22 +220,32 @@ Tests are organized by responsibility:
 - Game-state behavior
 - Attack detection
 - Perft
-- AI
+- AI behavior
 
-This makes it possible to modify the engine while continuously checking that existing behavior remains stable.
+## Validation
+
+The engine was validated using standard positions and Perft counts, including:
+
+```text
+Initial position:
+Depth 1: 20
+Depth 2: 400
+Depth 3: 8,902
+Depth 4: 197,281
+```
+
+The development log also records validation of special positions and chess-rule behavior.
 
 ## Current Release Scope
 
-**Version:** `1.0`
+**Version: 1.0**
 
-The v1.0 release focuses on a working playable engine rather than implementing every advanced chess-engine feature.
+The v1.0 release is a playable chess-engine project with core legal chess rules, a Pygame GUI, a computer opponent, and an automated test suite.
 
-The architecture is intentionally modular so future work can be added without redesigning the whole project.
+The architecture is modular so future improvements can be added without redesigning the whole project.
 
 ## Possible Future Improvements
 
-- Expanded chess-rule coverage
-- More complete draw-rule handling
 - Stronger AI search
 - Transposition tables
 - Additional move-ordering heuristics
@@ -228,7 +253,6 @@ The architecture is intentionally modular so future work can be added without re
 - Player-side selection
 - Opening book
 - PGN export/import
-- FEN import/export improvements
 - Game clock
 - Save/load games
 - Additional GUI polish
@@ -238,11 +262,11 @@ The architecture is intentionally modular so future work can be added without re
 - **Python**
 - **Pygame**
 - **pytest**
-- Git / GitHub
+- **Git / GitHub**
 
 ## Project Status
 
 **v1.0 — Complete**
 
-The current release is considered the finished baseline version of the project. Future enhancements can be developed as a separate v2.x line without changing the v1.0 scope.
+
 
