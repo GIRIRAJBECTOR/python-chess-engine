@@ -30,11 +30,14 @@ class GameWindow:
         self.clock = pygame.time.Clock()
 
         self.running = True
+        self.game_started = False
+        self.game_mode = None
 
         # AI opponent: human plays White, engine plays Black.
         self.ai_side = GameState.BLACK
         self.ai = ChessAI(depth=2)
         self.ai_thinking = False
+        self.ai_delay_until = None
 
         # -------------------------------------------------
         # Game state
@@ -61,6 +64,8 @@ class GameWindow:
         self.move_history = []
         self.game_history = []
         self.ai_thinking = False
+        self.ai_delay_until = None
+        self.ai_thinking = False
 
         # -------------------------------------------------
         # Fonts
@@ -80,6 +85,13 @@ class GameWindow:
             None,
             22,
         )
+
+        self.menu_title_font = pygame.font.Font(None, 48)
+        self.menu_button_font = pygame.font.Font(None, 30)
+
+        # Start-menu buttons.
+        self.computer_button = pygame.Rect(140, 300, 360, 70)
+        self.human_button = pygame.Rect(140, 400, 360, 70)
 
         # -------------------------------------------------
         # Restart button
@@ -262,6 +274,87 @@ class GameWindow:
         )
 
     # =====================================================
+    # START MENU
+    # =====================================================
+
+    def start_game(self, mode):
+        self.game_mode = mode
+        self.game_started = True
+
+        self.game_state = GameState()
+        self.board_renderer.game_state = self.game_state
+
+        self.move_history = []
+        self.game_history = []
+        self.ai_thinking = False
+        self.ai_delay_until = None
+        self.clear_selection()
+
+    def draw_start_menu(self):
+        self.screen.fill((25, 25, 25))
+
+        title = self.menu_title_font.render(
+            "Python Chess Engine",
+            True,
+            (245, 245, 245),
+        )
+        title_rect = title.get_rect(
+            center=(self.WIDTH // 2, 180)
+        )
+        self.screen.blit(title, title_rect)
+
+        subtitle = self.button_font.render(
+            "Choose game mode",
+            True,
+            (190, 190, 190),
+        )
+        subtitle_rect = subtitle.get_rect(
+            center=(self.WIDTH // 2, 240)
+        )
+        self.screen.blit(subtitle, subtitle_rect)
+
+        for rect, label in (
+            (self.computer_button, "Computer vs Human"),
+            (self.human_button, "Human vs Human"),
+        ):
+            pygame.draw.rect(
+                self.screen,
+                (70, 70, 70),
+                rect,
+                border_radius=10,
+            )
+            pygame.draw.rect(
+                self.screen,
+                (130, 130, 130),
+                rect,
+                2,
+                border_radius=10,
+            )
+
+            text = self.menu_button_font.render(
+                label,
+                True,
+                (255, 255, 255),
+            )
+            text_rect = text.get_rect(center=rect.center)
+            self.screen.blit(text, text_rect)
+
+        pygame.display.flip()
+
+    def handle_menu_click(self, mouse_pos):
+        if self.computer_button.collidepoint(mouse_pos):
+            # Human is White; computer is Black.
+            self.ai_side = GameState.BLACK
+            self.start_game("computer")
+            return
+
+        if self.human_button.collidepoint(mouse_pos):
+            # No AI in two-player mode.
+            self.ai_side = None
+            self.start_game("human")
+            return
+
+    # =====================================================
     # RESTART
     # =====================================================
 
@@ -278,6 +371,8 @@ class GameWindow:
 
         self.move_history = []
         self.game_history = []
+        self.ai_thinking = False
+        self.ai_delay_until = None
 
     # =====================================================
     # UNDO
@@ -287,6 +382,9 @@ class GameWindow:
 
         if not self.game_history:
             return
+
+        self.ai_thinking = False
+        self.ai_delay_until = None
 
         self.game_state = self.game_history.pop()
         self.board_renderer.game_state = self.game_state
@@ -332,6 +430,12 @@ class GameWindow:
         )
 
         if square is None:
+            return
+
+        # -------------------------------------------------
+        # Don't allow moves while AI is waiting/thinking
+        # -------------------------------------------------
+        if self.ai_thinking:
             return
 
         # -------------------------------------------------
@@ -386,12 +490,15 @@ class GameWindow:
             self.add_move_to_history(target_move, notation)
             self.clear_selection()
 
-            # Engine replies immediately after the human's move.
+            # Schedule the AI reply 5 seconds after the human move.
+            # Do not use sleep(): the pygame event loop must remain responsive.
             if (
-                self.game_state.side_to_move == self.ai_side
+                self.game_mode == "computer"
+                and self.game_state.side_to_move == self.ai_side
                 and not self.game_state.is_game_over()
             ):
-                self.make_ai_move()
+                self.ai_thinking = True
+                self.ai_delay_until = pygame.time.get_ticks() + 5000
 
             return
 
@@ -421,11 +528,15 @@ class GameWindow:
 
     def make_ai_move(self):
         if self.game_state.side_to_move != self.ai_side:
-            return
-        if self.game_state.is_game_over():
+            self.ai_thinking = False
+            self.ai_delay_until = None
             return
 
-        self.ai_thinking = True
+        if self.game_state.is_game_over():
+            self.ai_thinking = False
+            self.ai_delay_until = None
+            return
+
         try:
             move = self.ai.choose_move(self.game_state)
             if move is None:
@@ -444,6 +555,18 @@ class GameWindow:
             self.clear_selection()
         finally:
             self.ai_thinking = False
+            self.ai_delay_until = None
+
+    def update_ai(self):
+        if not self.ai_thinking:
+            return
+
+        if self.ai_delay_until is not None:
+            if pygame.time.get_ticks() < self.ai_delay_until:
+                return
+            self.ai_delay_until = None
+
+        self.make_ai_move()
 
     # =====================================================
     # STATUS
@@ -690,16 +813,14 @@ class GameWindow:
         for event in pygame.event.get():
 
             if event.type == pygame.QUIT:
-
                 self.running = False
+                continue
 
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-
-                if event.button == 1:
-
-                    self.handle_mouse_click(
-                        event.pos
-                    )
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if not self.game_started:
+                    self.handle_menu_click(event.pos)
+                else:
+                    self.handle_mouse_click(event.pos)
 
     # =====================================================
     # CHECK INDICATOR
@@ -799,6 +920,10 @@ class GameWindow:
 
     def draw(self):
 
+        if not self.game_started:
+            self.draw_start_menu()
+            return
+
         self.board_renderer.draw()
 
         self.draw_check_indicator()
@@ -820,6 +945,8 @@ class GameWindow:
         while self.running:
 
             self.handle_events()
+
+            self.update_ai()
 
             self.draw()
 
